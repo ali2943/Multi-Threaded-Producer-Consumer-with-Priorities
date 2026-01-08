@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Threaded Producer-Consumer with Priorities</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Multi-Threaded Producer-Consumer with Priorities</h1>
+            <p class="subtitle">Real-time monitoring of priority-based task processing</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Control Panel -->
+            <section class="card control-panel">
+                <h2>🎮 Control Panel</h2>
+                
+                <div class="status-indicator">
+                    <span class="status-label">System Status:</span>
+                    <span id="systemStatus" class="status-badge stopped">STOPPED</span>
+                </div>
+
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="numProducers">Producers:</label>
+                        <input type="number" id="numProducers" value="2" min="1" max="10">
+                    </div>
+                    <div class="config-item">
+                        <label for="numConsumers">Consumers:</label>
+                        <input type="number" id="numConsumers" value="3" min="1" max="10">
+                    </div>
+                    <div class="config-item">
+                        <label for="itemsPerProducer">Items/Producer:</label>
+                        <input type="number" id="itemsPerProducer" value="20" min="1" max="100">
+                    </div>
+                    <div class="config-item">
+                        <label for="bufferSize">Buffer Size:</label>
+                        <input type="number" id="bufferSize" value="10" min="1" max="50">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="startBtn" class="btn btn-primary">▶️ Start System</button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>⏹️ Stop System</button>
+                </div>
+            </section>
+
+            <!-- Buffer Status -->
+            <section class="card buffer-status">
+                <h2>📊 Buffer Status</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="bufferSize">0</div>
+                        <div class="stat-label">Current Size</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="bufferMax">0</div>
+                        <div class="stat-label">Max Size</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalProduced">0</div>
+                        <div class="stat-label">Total Produced</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalConsumed">0</div>
+                        <div class="stat-label">Total Consumed</div>
+                    </div>
+                </div>
+
+                <div class="buffer-visual">
+                    <div class="buffer-bar-container">
+                        <div id="bufferBar" class="buffer-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="buffer-label">Buffer Occupancy: <span id="bufferPercent">0%</span></div>
+                </div>
+            </section>
+
+            <!-- Priority Distribution -->
+            <section class="card priority-stats">
+                <h2>📈 Priority Distribution</h2>
+                <div id="priorityChart" class="priority-chart">
+                    <div class="priority-item">
+                        <span class="priority-label critical">CRITICAL</span>
+                        <div class="priority-bar-container">
+                            <div id="priorityCritical" class="priority-bar critical" style="width: 0%"></div>
+                        </div>
+                        <span id="countCritical" class="priority-count">0</span>
+                    </div>
+                    <div class="priority-item">
+                        <span class="priority-label high">HIGH</span>
+                        <div class="priority-bar-container">
+                            <div id="priorityHigh" class="priority-bar high" style="width: 0%"></div>
+                        </div>
+                        <span id="countHigh" class="priority-count">0</span>
+                    </div>
+                    <div class="priority-item">
+                        <span class="priority-label medium">MEDIUM</span>
+                        <div class="priority-bar-container">
+                            <div id="priorityMedium" class="priority-bar medium" style="width: 0%"></div>
+                        </div>
+                        <span id="countMedium" class="priority-count">0</span>
+                    </div>
+                    <div class="priority-item">
+                        <span class="priority-label low">LOW</span>
+                        <div class="priority-bar-container">
+                            <div id="priorityLow" class="priority-bar low" style="width: 0%"></div>
+                        </div>
+                        <span id="countLow" class="priority-count">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Thread Status -->
+            <section class="card thread-status">
+                <h2>🧵 Thread Status</h2>
+                <div class="thread-grid">
+                    <div class="thread-info">
+                        <div class="thread-icon">👨‍🏭</div>
+                        <div class="thread-details">
+                            <div class="thread-title">Producers</div>
+                            <div class="thread-count"><span id="activeProducers">0</span> / <span id="totalProducers">0</span> active</div>
+                        </div>
+                    </div>
+                    <div class="thread-info">
+                        <div class="thread-icon">👨‍💼</div>
+                        <div class="thread-details">
+                            <div class="thread-title">Consumers</div>
+                            <div class="thread-count"><span id="activeConsumers">0</span> / <span id="totalConsumers">0</span> active</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manual Item Addition -->
+            <section class="card add-item">
+                <h2>➕ Add Manual Item</h2>
+                <div class="add-item-form">
+                    <select id="itemPriority" class="form-control">
+                        <option value="CRITICAL">CRITICAL</option>
+                        <option value="HIGH">HIGH</option>
+                        <option value="MEDIUM" selected>MEDIUM</option>
+                        <option value="LOW">LOW</option>
+                    </select>
+                    <input type="text" id="itemData" class="form-control" placeholder="Enter item data...">
+                    <button id="addItemBtn" class="btn btn-success">Add Item</button>
+                </div>
+            </section>
+
+            <!-- Log Section -->
+            <section class="card log-section">
+                <h2>📝 System Log</h2>
+                <div id="logContainer" class="log-container">
+                    <div class="log-entry info">System initialized. Configure and start to begin.</div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>Multi-Threaded Producer-Consumer with Semaphores & Priority Queue</p>
+            <p class="tech-stack">Python • Flask • WebSockets • Threading • Semaphores</p>
+        </footer>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!-- Main JavaScript -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
